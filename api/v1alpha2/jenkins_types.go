@@ -386,6 +386,8 @@ type JenkinsMaster struct {
 	// HostAliases for Jenkins master pod and SeedJob agent
 	// +optional
 	HostAliases []corev1.HostAlias `json:"hostAliases,omitempty"`
+
+	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 }
 
 // Service defines Kubernetes service attributes
