@@ -15,4 +15,5 @@ const (
 	DefaultSlavePortInt32 = int32(50000)
 	// JavaOpsVariableName is the name of environment variable which consists Jenkins Java options
 	JavaOpsVariableName = "JAVA_OPTS"
+	DefaultTerminationGracePeriodSeconds = int64(30)
 )
