@@ -127,7 +127,7 @@ func verifyJenkinsMasterPodAttributes(jenkins *v1alpha2.Jenkins) {
 	Expect(jenkinsPod.Spec.PriorityClassName).Should(Equal(jenkins.Spec.Master.PriorityClassName))
 
 	Expect(jenkinsPod.Spec.TerminationGracePeriodSeconds).Should(Equal(jenkins.Spec.Master.TerminationGracePeriodSeconds))
-	
+
 	for _, actualContainer := range jenkinsPod.Spec.Containers {
 		if actualContainer.Name == resources.JenkinsMasterContainerName {
 			verifyContainer(resources.NewJenkinsMasterContainer(jenkins), actualContainer)
