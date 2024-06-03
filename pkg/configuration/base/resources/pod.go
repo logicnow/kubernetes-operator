@@ -369,6 +369,11 @@ func NewJenkinsMasterPod(objectMeta metav1.ObjectMeta, jenkins *v1alpha2.Jenkins
 	objectMeta.Name = GetJenkinsMasterPodName(jenkins)
 	objectMeta.Labels = GetJenkinsMasterPodLabels(*jenkins)
 
+	if jenkins.Spec.Master.TerminationGracePeriodSeconds == nil {
+		defaultGracePeriod := constants.DefaultTerminationGracePeriodSeconds
+		jenkins.Spec.Master.TerminationGracePeriodSeconds = &defaultGracePeriod
+	}
+
 	return &corev1.Pod{
 		TypeMeta:   buildPodTypeMeta(),
 		ObjectMeta: objectMeta,
