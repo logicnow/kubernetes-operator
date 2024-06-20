@@ -224,6 +224,15 @@ func (bar *BackupAndRestore) Backup(setBackupDoneBeforePodDeletion bool) error {
 	_, _, err := bar.Exec(podName, jenkins.Spec.Backup.ContainerName, command)
 
 	if err == nil {
+		key := types.NamespacedName{
+			Namespace: jenkins.Namespace,
+			Name:      jenkins.Name,
+		}
+		err = bar.Client.Get(context.TODO(), key, jenkins)
+		if err != nil {
+			return err
+		}
+
 		bar.logger.V(log.VDebug).Info(fmt.Sprintf("Backup completed '%d', updating status", backupNumber))
 		if jenkins.Status.RestoredBackup == 0 {
 			jenkins.Status.RestoredBackup = backupNumber
