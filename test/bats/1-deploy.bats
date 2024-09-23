@@ -33,15 +33,17 @@ diag() {
     --set namespace=${DETIK_CLIENT_NAMESPACE} \
     --set operator.image=${OPERATOR_IMAGE} \
     --set jenkins.latestPlugins=true \
-    --set jenkins.image="jenkins/jenkins:2.452.1-lts" \
+    --set jenkins.image="jenkins/jenkins:2.452.2-lts" \
+    --set jenkins.imagePullPolicy="IfNotPresent" \
     --set jenkins.backup.makeBackupBeforePodDeletion=false \
+    --set jenkins.backup.image=quay.io/jenkins-kubernetes-operator/backup-pvc:e2e-test \
     --set jenkins.seedJobs[0].id=seed-job \
     --set jenkins.seedJobs[0].targets="cicd/jobs/*.jenkins" \
     --set jenkins.seedJobs[0].description="jobs-from-operator-repo" \
     --set jenkins.seedJobs[0].repositoryBranch=master \
     --set jenkins.seedJobs[0].repositoryUrl=https://github.com/jenkinsci/kubernetes-operator \
     --set jenkins.seedJobs[0].buildPeriodically="10 * * * *" \
-    jenkins-operator/jenkins-operator --version=$(cat VERSION.txt | sed 's/v//')
+    jenkins-operator/jenkins-operator --version=$(get_latest_chart_version)
   assert_success
   assert ${HELM} status default
   touch "chart/jenkins-operator/deploy.tmp"
@@ -126,16 +128,18 @@ diag() {
 #bats test_tags=phase:helm,scenario:vanilla
 @test "1.10 Helm: check Jenkins seed job status and logs" {
   [[ ! -f "chart/jenkins-operator/deploy.tmp" ]] && skip "Jenkins helm chart have not been deployed correctly"
+  run try "at most 20 times every 10s to get pods named 'seed-job-agent-jenkins-' and verify that '.status.containerStatuses[?(@.name==\"jnlp\")].ready' is 'true'"
+  assert_success
+
   run verify "there is 1 deployment named 'seed-job-agent-jenkins'"
   assert_success
 
   run verify "there is 1 pod named 'seed-job-agent-jenkins-'"
   assert_success
 
-  run try "at most 20 times every 10s to get pods named 'seed-job-agent-jenkins-' and verify that '.status.containerStatuses[?(@.name==\"jnlp\")].ready' is 'true'"
-  assert_success
+  sleep 10
 
-  run ${KUBECTL} logs -l app=seed-job-agent-selector
+  run ${KUBECTL} logs -l app=seed-job-agent-selector --tail=20000
   assert_success
   assert_output --partial 'INFO: Connected'
 
@@ -150,9 +154,11 @@ diag() {
     --set namespace=${DETIK_CLIENT_NAMESPACE} \
     --set operator.image=${OPERATOR_IMAGE} \
     --set jenkins.latestPlugins=true \
-    --set jenkins.image="jenkins/jenkins:2.452.1-lts" \
+    --set jenkins.image="jenkins/jenkins:2.452.2-lts" \
+    --set jenkins.imagePullPolicy="IfNotPresent" \
     --set jenkins.backup.makeBackupBeforePodDeletion=false \
-    chart/jenkins-operator
+    --set jenkins.backup.image=quay.io/jenkins-kubernetes-operator/backup-pvc:e2e-test \
+    chart/jenkins-operator --wait
   assert_success
   assert ${HELM} status default
 }
@@ -195,10 +201,10 @@ diag() {
 
 #bats test_tags=phase:helm,scenario:vanilla
 @test "1.15 Helm: clean" {
-  run ${HELM} uninstall default
+  run ${HELM} uninstall default --wait
   assert_success
   # Wait for the complete removal
-  sleep 30
+  sleep 10
 
   run verify "there is 0 pvc named 'jenkins backup'"
   assert_success
