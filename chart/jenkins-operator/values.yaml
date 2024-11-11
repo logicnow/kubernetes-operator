@@ -76,6 +76,9 @@ jenkins:
   # See https://jenkinsci.github.io/kubernetes-operator/docs/getting-started/latest/configuration/#pulling-docker-images-from-private-repositories for more info
   imagePullSecrets: []
 
+  # lifecycle is a section for configuring the lifecycle of the Jenkins container
+  lifecycle: {}
+
   # notifications is feature that notify user about Jenkins reconciliation status
   # See https://jenkinsci.github.io/kubernetes-operator/docs/getting-started/latest/notifications/ for more info
   notifications: []

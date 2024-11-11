@@ -122,6 +122,9 @@ spec:
       - name:  jenkins-master
         image: {{ .Values.jenkins.image }}
         imagePullPolicy: {{ .Values.jenkins.imagePullPolicy }}
+        {{- with .Values.jenkins.master.lifecycle}}
+        lifecycle: {{ toYaml . | nindent 10 }}
+        {{- end }}
         {{- with .Values.jenkins.livenessProbe }}
         livenessProbe: {{ toYaml . | nindent 10 }}
         {{- end }}
