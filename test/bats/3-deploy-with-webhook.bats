@@ -29,10 +29,14 @@ setup() {
     --set namespace=${DETIK_CLIENT_NAMESPACE} \
     --set operator.image=${OPERATOR_IMAGE} \
     --set jenkins.latestPlugins=true \
-    --set jenkins.image="jenkins/jenkins:2.452.1-lts" \
+    --set jenkins.image="jenkins/jenkins:2.462.3-lts" \
+    --set jenkins.imagePullPolicy="IfNotPresent" \
     --set jenkins.backup.makeBackupBeforePodDeletion=true \
+    --set jenkins.backup.image=quay.io/jenkins-kubernetes-operator/backup-pvc:e2e-test \
     --set webhook.enabled=true \
-    jenkins-operator/jenkins-operator --version=$(cat VERSION.txt | sed 's/v//')
+    --set cert-manager.enabled=true \
+    --set cert-manager.startupapicheck.enabled=true \
+    jenkins-operator/jenkins-operator --version=$(get_latest_chart_version)
   assert_success
   assert ${HELM} status webhook
   touch "chart/jenkins-operator/deploy.tmp"
@@ -48,7 +52,7 @@ setup() {
   run verify "there is 1 pod named 'webhook-jenkins-operator-'"
   assert_success
 
-  run try "at most 20 times every 10s to get pods named 'webhook-jenkins-operator-' and verify that '.status.containerStatuses[?(@.name==\"jenkins-operator\")].ready' is 'true'"
+  run try "at most 50 times every 5s to get pod named 'webhook-jenkins-operator-' and verify that '.status.containerStatuses[?(@.name==\"jenkins-operator\")].ready' is 'true'"
   assert_success
 
   run ${KUBECTL} rollout restart deployment webhook-jenkins-operator
@@ -59,7 +63,7 @@ setup() {
 @test "3.4  Helm: check Jenkins Pod status" {
   [[ ! -f "chart/jenkins-operator/deploy.tmp" ]] && skip "Jenkins helm chart have not been deployed correctly"
 
-  run try "at most 30 times every 10s to get pods named 'jenkins-jenkins' and verify that '.status.containerStatuses[?(@.name==\"jenkins-master\")].ready' is 'true'"
+  run try "at most 30 times every 10s to get pod named 'jenkins-jenkins' and verify that '.status.containerStatuses[?(@.name==\"jenkins-master\")].ready' is 'true'"
   assert_success
 }
 
@@ -86,10 +90,14 @@ setup() {
     --set namespace=${DETIK_CLIENT_NAMESPACE} \
     --set operator.image=${OPERATOR_IMAGE} \
     --set jenkins.latestPlugins=true \
-    --set jenkins.image="jenkins/jenkins:2.452.1-lts" \
+    --set jenkins.image="jenkins/jenkins:2.462.3-lts" \
+    --set jenkins.imagePullPolicy="IfNotPresent" \
     --set jenkins.backup.makeBackupBeforePodDeletion=true \
+    --set jenkins.backup.image=quay.io/jenkins-kubernetes-operator/backup-pvc:e2e-test \
     --set webhook.enabled=true \
-    chart/jenkins-operator
+    --set cert-manager.enabled=true \
+    --set cert-manager.startupapicheck.enabled=true \
+    chart/jenkins-operator --wait
   assert_success
   assert ${HELM} status webhook
   sleep 10
@@ -135,9 +143,9 @@ setup() {
 @test "3.12 Helm: clean" {
   [[ ! -f "chart/jenkins-operator/deploy.tmp" ]] && skip "Jenkins helm chart have not been deployed correctly"
 
-  run ${HELM} uninstall webhook
+  run ${HELM} uninstall webhook --wait
   assert_success
-  sleep 30
+  sleep 20
 
   run verify "there is 0 pvc named 'jenkins backup'"
   assert_success
