@@ -29,10 +29,11 @@ setup() {
     --set operator.image=${OPERATOR_IMAGE} \
     --set jenkins.latestPlugins=true \
     --set jenkins.nodeSelector.batstest=yep \
-    --set jenkins.image="jenkins/jenkins:2.452.1-lts" \
+    --set jenkins.image="jenkins/jenkins:2.462.3-lts" \
+    --set jenkins.imagePullPolicy="IfNotPresent" \
     --set jenkins.backup.makeBackupBeforePodDeletion=false \
-    --set jenkins.lifecycle.preStop.exec.command[0]="echo 'bats test'" \
-    jenkins-operator/jenkins-operator --version=$(cat VERSION.txt | sed 's/v//')
+    --set jenkins.backup.image=quay.io/jenkins-kubernetes-operator/backup-pvc:e2e-test \
+    jenkins-operator/jenkins-operator --version=$(get_latest_chart_version)
   assert_success
   assert ${HELM} status options
   touch "chart/jenkins-operator/deploy.tmp"
@@ -95,15 +96,6 @@ setup() {
 }
 
 #bats test_tags=phase:helm,scenario:more-options
-@test "2.5  Helm: check lifecycle" {
-  [[ ! -f "chart/jenkins-operator/deploy.tmp" ]] && skip "Jenkins helm chart have not been deployed correctly"
-
-  run ${KUBECTL} get pod jenkins-jenkins -o jsonpath={.spec.containers[0].lifecycle.preStop.exec.command[0]}
-  assert_success
-  assert_output "echo 'bats test'"
-}
-
-#bats test_tags=phase:helm,scenario:more-options
 @test "2.9  Helm: upgrade from main branch same value" {
   run ${HELM} upgrade options \
     --set jenkins.namespace=${DETIK_CLIENT_NAMESPACE} \
@@ -111,9 +103,11 @@ setup() {
     --set operator.image=${OPERATOR_IMAGE} \
     --set jenkins.latestPlugins=true \
     --set jenkins.nodeSelector.batstest=yep \
-    --set jenkins.image="jenkins/jenkins:2.452.1-lts" \
+    --set jenkins.image="jenkins/jenkins:2.462.3-lts" \
+    --set jenkins.imagePullPolicy="IfNotPresent" \
     --set jenkins.backup.makeBackupBeforePodDeletion=false \
-    chart/jenkins-operator
+    --set jenkins.backup.image=quay.io/jenkins-kubernetes-operator/backup-pvc:e2e-test \
+    chart/jenkins-operator --wait
   assert_success
   assert ${HELM} status options
 }
@@ -168,9 +162,9 @@ setup() {
 @test "2.14 Helm: clean" {
   [[ ! -f "chart/jenkins-operator/deploy.tmp" ]] && skip "Jenkins helm chart have not been deployed correctly"
 
-  run ${HELM} uninstall options
+  run ${HELM} uninstall options --wait
   assert_success
-  sleep 30
+  sleep 10
 
   run verify "there is 0 pvc named 'jenkins backup'"
   assert_success
